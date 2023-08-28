@@ -1,15 +1,21 @@
 const video = document.getElementById('camera');
 const captureButton = document.getElementById('capture');
+const switchButton = document.getElementById('switch');
 const resultDiv = document.getElementById('result');
 const loadingIndicator = document.getElementById('loadingIndicator');
-const extractedText = document.getElementById('extractedText'); // Add this line if not already present
+const extractedText = document.getElementById('extractedText');
 
-let stream = null; // Store the camera stream
+let stream = null;
+let selectedDeviceIndex = 0;
 
-function startCamera() {
-    navigator.mediaDevices.getUserMedia({ video: true })
+function startCamera(deviceId) {
+    const constraints = {
+        video: { deviceId: deviceId ? { exact: deviceId } : undefined }
+    };
+
+    navigator.mediaDevices.getUserMedia(constraints)
         .then(mediaStream => {
-            stream = mediaStream; // Store the stream
+            stream = mediaStream;
             video.srcObject = mediaStream;
             video.play();
         })
@@ -21,10 +27,32 @@ function startCamera() {
 function stopCamera() {
     if (stream) {
         const tracks = stream.getTracks();
-        tracks.forEach(track => track.stop()); // Stop the camera stream
+        tracks.forEach(track => track.stop());
         stream = null;
     }
 }
+
+function switchCamera() {
+    selectedDeviceIndex = (selectedDeviceIndex + 1) % availableDevices.length;
+    stopCamera();
+    startCamera(availableDevices[selectedDeviceIndex].deviceId);
+}
+
+let availableDevices = [];
+
+navigator.mediaDevices.enumerateDevices()
+    .then(devices => {
+        availableDevices = devices.filter(device => device.kind === 'videoinput');
+        if (availableDevices.length > 0) {
+            switchButton.style.display = 'block';
+            startCamera(availableDevices[selectedDeviceIndex].deviceId);
+        } else {
+            console.error('No camera devices available.');
+        }
+    })
+    .catch(error => {
+        console.error('Error enumerating devices:', error);
+    });
 
 captureButton.addEventListener('click', () => {
     loadingIndicator.style.display = 'block';
@@ -49,17 +77,20 @@ captureButton.addEventListener('click', () => {
     .then(response => response.json())
     .then(data => {
         resultDiv.textContent = data.text;
-        extractedText.value = data.text; // Set the extracted text in the textarea
+        extractedText.value = data.text;
         console.log('Extracted Text:', data.text);
         loadingIndicator.style.display = 'none';
-        startCamera();
+        startCamera(availableDevices[selectedDeviceIndex].deviceId);
     })
     .catch(error => {
         console.error('Error sending image data:', error);
         loadingIndicator.style.display = 'none';
-        startCamera();
+        startCamera(availableDevices[selectedDeviceIndex].deviceId);
     });
 });
 
-// Start the camera initially
+switchButton.addEventListener('click', () => {
+    switchCamera();
+});
+
 startCamera();
