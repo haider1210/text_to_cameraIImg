@@ -13,7 +13,7 @@ app.use(bodyParser.json());
 app.set('view engine', 'ejs');
 
 app.get('/', (req, res) => {
-    res.render('index', { data: '' }); // Initialize data with an empty string
+    res.render('index');
 });
 
 app.post('/extracttextfromimage', (req, res) => {
@@ -28,7 +28,7 @@ app.post('/extracttextfromimage', (req, res) => {
 
     tesseract.recognize(imageBuffer, config)
         .then(text => {
-            console.log("Result:", text);
+            console.log("Extracted Text:", text);
             res.json({ text });
         })
         .catch(error => {
